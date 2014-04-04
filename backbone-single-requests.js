@@ -33,7 +33,7 @@
       // Abort is not error, so try to catch that
       var error = options.error;
       options.error = function(resp) {
-        if ( resp.statusText === 'abort' ) model.trigger( 'abort', model, resp, options );
+        if ( resp.statusText === 'abort' ) return model.trigger( 'abort', model, resp, options );
         if ( error ) error( model, resp, options );
       }
 

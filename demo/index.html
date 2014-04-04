@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+  <link rel="stylesheet" type="text/css" href="//cdnjs.cloudflare.com/ajax/libs/pure/0.4.2/pure-min.css" />
+
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/underscore.js/1.5.2/underscore-min.js"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+  <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/backbone.js/1.0.0/backbone-min.js"></script>
+  <script type="text/javascript" src="../backbone-single-requests.js"></script>
+
+</head>
+<body style="margin: 0 1em;">
+  <h1>Testing </h1>
+
+  <h4>Expect #1-4 to be "aborted" &amp; #5 to be "OK"</h4>
+  <section id="results1"></section>
+
+  <h4>Expect #1-4 to be "aborted" &amp; #5 to be "OK"</h4>
+  <section id="results2"></section>
+
+  <script type="text/javascript" >
+
+    // DEFINE
+    var Model = Backbone.Model.extend({
+      url: 'mock-api.php'
+    });
+
+    // Item
+    var Item = Backbone.View.extend({
+      templateRequest: _.template("<p>Pending Request...<p>"),
+      templateResponse: _.template("<p>Concurrent request #<%= index %> status: <%= status %><p>"),
+      render: function( status ) {
+        this.$el.html( !status ? this.templateRequest() : this.templateResponse({ index: this.index, status: status }));
+        return this;
+      }
+    });
+
+    // List Collection
+    var List = Backbone.View.extend({
+      initialize: function() {
+        this._reset();
+
+        // EVENTS
+        var requestIndex = 0;
+        this.listenTo( this.model, 'request', function(){
+          var id = 'request_' + (++requestIndex);
+          this.add( new this.view({ id: id }) );
+        });
+
+        var responseIndex = 0;
+        var respond = function( __, resp ){
+          var id = 'request_' + (++responseIndex);
+          var item = this.get( id );
+          item.index = responseIndex;
+          item.render( resp.status + ' ' + resp.statusText );
+        };
+
+        this.listenTo( this.model, 'abort', respond );
+        this.listenTo( this.model, 'sync',  respond );
+
+      },
+      respond: function( __, resp) {
+
+      },
+      view: Item,
+      get: function(obj) {
+        if (obj == null) return void 0;
+        return this._byId[obj] || this._byId[obj.id] || this._byId[obj.cid];
+      },
+      add: function( view ) {
+        if ( view.id && this._byId[ view.id ] === void 0 ) {
+          view.render();
+          this.$el.append( view.el );
+          this._byId[ view.id || view.cid ] = view;
+          this.length++;
+          return view;
+        } else if ( view.id && this._byId[ view.id ] !== void 0 ) {
+          return this._byId[ view.id ];
+        }
+        return;
+      },
+      _reset: function() {
+        this.length = 0;
+        this.views = [];
+        this._byId  = {};
+      }
+    });
+
+    // EXECUTE Test 1
+    var model1 = new Model();
+    var block1 = new List({ el: '#results1', model: model1 });
+
+    // Add "abortRequests" in the options of fetch
+    for (var i = 0; i<5; i++) {
+      model1.fetch({ abortRequests: true });
+    }
+
+    // EXECUTE Test 2
+    var model2 = new Model();
+    var block2 = new List({ el: '#results2', model: model2 });
+
+    // Set singleRequests
+    model2.singleRequests = true;
+
+    // Make normal fetches
+    for (var i = 0; i<5; i++) {
+      model2.fetch();
+    }
+
+  </script>
+
+</body>
+</html>

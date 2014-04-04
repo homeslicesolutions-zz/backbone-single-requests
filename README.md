@@ -31,13 +31,10 @@ var beer = new Beer();
 beer.on('abort', function(){ console.log('call aborted') });
 beer.on('sync',  function(){ console.log('call completed') });
 
-beer.fetch();
-beer.fetch();
-beer.fetch();
-beer.fetch();
-beer.fetch();
-
-// Will result: Console will log 4 'call aborted', then 1 'call completed', assuming '/api/beer' takes some time and truly async.
+for (var i = 0; i < 99; i++) {
+  beer.fetch();
+}
+// Will result: Console will log 98 'call aborted', then 1 'call completed', assuming '/api/beer' takes some time and truly async.
 ```
 
 #### singleRequests
